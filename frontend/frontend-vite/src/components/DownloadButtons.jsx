@@ -1,25 +1,36 @@
 import React from 'react';
 
-const API_URL_BASE = 'http://localhost:5000/api/scrape/download';
-
 const DownloadButtons = ({ resultsCount, loading }) => {
   if (resultsCount === 0) {
     return null;
   }
 
+  // Use the VITE_API_URL environment variable to get the base URL
+  // Example: https://data-scrapper-project.onrender.com/api/scrape
+  const API_BASE = import.meta.env.VITE_API_URL;
+  
+  // The specific path for downloading files on your backend
+  const DOWNLOAD_PATH = '/download';
+
   const handleDownload = (format) => {
-    const url = `${API_URL_BASE}/${format}`;
+    // Constructs the full URL for the download endpoint
+    // Example: https://data-scrapper-project.onrender.com/api/scrape/download/csv
+    const url = `${API_BASE}${DOWNLOAD_PATH}/${format}`;
     
     // Create a temporary link element to trigger the download
     const link = document.createElement('a');
     link.href = url;
-    link.target = '_blank'; // Important for CORS compliance and opening the file stream
+    
+    // Important for cross-origin downloads from a browser link click
+    link.target = '_blank'; 
+    
     link.click();
+    link.remove(); // Clean up the temporary element
   };
 
   return (
     <div className="download-section">
-      <p>Download Results:</p>
+      <h3>Download Results:</h3>
       <button 
         className="download-btn csv"
         onClick={() => handleDownload('csv')}
@@ -27,10 +38,10 @@ const DownloadButtons = ({ resultsCount, loading }) => {
       >
         ⬇️ Download CSV
       </button>
-      {/* We'll use the CSV file for the "Excel" button, as Excel can open CSV */}
+      {/* We use CSV endpoint, but label it for Excel users */}
       <button 
         className="download-btn excel"
-        onClick={() => handleDownload('excel')} 
+        onClick={() => handleDownload('csv')} // Still calls the CSV endpoint
         disabled={loading}
       >
         ⬇️ Download Excel (CSV)
