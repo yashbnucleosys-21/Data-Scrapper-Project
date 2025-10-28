@@ -6,7 +6,7 @@ import ScrapeButton from './components/ScrapeButton.jsx';
 import ResultsTable from './components/ResultsTable.jsx';
 import DownloadButtons from './components/DownloadButtons.jsx'; // <-- ADDED IMPORT
 
-const API_URL = 'http://localhost:5000/api/scrape'; 
+const API_URL = import.meta.env.VITE_API_URL;
 
 function App() {
   const [keywords, setKeywords] = useState([]);
