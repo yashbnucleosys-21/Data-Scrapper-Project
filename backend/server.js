@@ -9,9 +9,33 @@ dotenv.config({ path: "./config/.env" });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// --- CRUCIAL: CORS Configuration for Live Deployment ---
+
+const allowedOrigins = [
+    // 1. Localhost for development
+    'http://localhost:5173', 
+    // 2. The live Vercel frontend domain (Confirmed)
+    'https://data-scrapper-project.vercel.app' 
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps) or from an allowed origin
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST'],
+  credentials: true
+};
+
 // Middleware
-// Enable CORS for all routes (allows React frontend to communicate)
-app.use(cors()); 
+// Apply the secure CORS configuration
+app.use(cors(corsOptions)); 
+// --------------------------------------------------------
+
 // Enable JSON body parsing for POST requests
 app.use(express.json()); 
 
@@ -20,7 +44,7 @@ app.use(express.json());
 app.use('/api/scrape', workflowRouter);
 
 app.get('/', (req, res) => {
-  res.send('N8N Workflow Scraper Backend API is running!');
+  res.send('Ncs Lead Data Scraper Backend API is running!');
 });
 
 // Start the server
