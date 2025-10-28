@@ -14,7 +14,7 @@ const PORT = process.env.PORT || 5000;
 const allowedOrigins = [
     'http://localhost:5173', 
     // CONFIRM THIS IS CORRECT:
-    'https://data-scrapper-project.vercel.app' 
+    'https://data-scrapper-project.vercel.app/' 
 ];
 
 const corsOptions = {
