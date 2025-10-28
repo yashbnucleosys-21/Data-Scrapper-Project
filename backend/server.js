@@ -47,6 +47,7 @@ app.get('/', (req, res) => {
   res.send('Ncs Lead Data Scraper Backend API is running!');
 });
 
+// --------------------------------------------------------
 // Start the server
 app.listen(PORT, () => {
   console.log(`✅ Backend server listening on http://localhost:${PORT}`);
