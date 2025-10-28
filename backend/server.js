@@ -12,9 +12,8 @@ const PORT = process.env.PORT || 5000;
 // --- CRUCIAL: CORS Configuration for Live Deployment ---
 
 const allowedOrigins = [
-    // 1. Localhost for development
     'http://localhost:5173', 
-    // 2. The live Vercel frontend domain (Confirmed)
+    // CONFIRM THIS IS CORRECT:
     'https://data-scrapper-project.vercel.app' 
 ];
 
