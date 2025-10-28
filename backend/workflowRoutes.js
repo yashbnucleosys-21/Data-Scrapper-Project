@@ -1,21 +1,43 @@
 import express from 'express';
 import { runWorkflow } from './scraper.js';
-import fs from 'fs';          
 import { Parser } from 'json2csv'; 
-import path from 'path';
 
 const router = express.Router();
 
-function ensureDataDir() {
-    const dir = './data';
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
+// --- IN-MEMORY CACHE ---
+// This will store the last set of scraped results directly in the server's memory.
+let scrapedDataCache = []; 
+// --- END CACHE ---
+
+// Function to generate CSV from in-memory data
+function generateCsv(data) {
+    if (!data || data.length === 0) {
+        // Return a CSV with just headers if data is empty
+        const fields = [
+            'keyword', 'business_name', 'website', 'address', 'phone', 
+            'owner_name', 'owner_linkedin', 'emails'
+        ];
+        return fields.join(','); 
     }
+    
+    // Define fields explicitly for the CSV Parser
+    const fields = [
+        'keyword',
+        'business_name',
+        'website',
+        'address',
+        'phone',
+        'owner_name',
+        'owner_linkedin',
+        'emails',
+    ];
+    const parser = new new Parser({ fields }); 
+    return parser.parse(data);
 }
+
 
 // Route: POST /api/scrape (Scraping Trigger)
 router.post('/', async (req, res) => {
-  // Extract 'keywords' and 'limit' from request body
   const { keywords, limit } = req.body; 
 
   if (!keywords || !Array.isArray(keywords) || keywords.length === 0) {
@@ -27,41 +49,15 @@ router.post('/', async (req, res) => {
   try {
     console.log(`Received request to scrape for: ${keywords.join(', ')}. Limit per keyword: ${limit || 'default 20'}`);
     
-    // Pass 'limit' to runWorkflow
     const results = await runWorkflow(keywords, limit);
     
-    // File Saving Logic 
-    ensureDataDir();
-    fs.writeFileSync("./data/results.json", JSON.stringify(results, null, 2));
-
-    try {
-        // --- FIX: Define fields explicitly to prevent crash on empty results ---
-        const fields = [
-            'keyword',
-            'business_name',
-            'website',
-            'address',
-            'phone',
-            'owner_name',
-            'owner_linkedin',
-            'emails',
-        ];
-
-        // Pass fields to the Parser constructor
-        const parser = new Parser({ fields }); 
-        const csv = parser.parse(results);
-        // --- END FIX ---
-        
-        fs.writeFileSync("./data/results.csv", csv);
-        console.log("✅ Results saved to data/results.json and data/results.csv");
-    } catch (csvErr) {
-        // This catch block will now only be hit if a serious file writing error occurs, not if results are empty.
-        console.error('❌ CSV Conversion Error:', csvErr.message);
-    }
-    // End File Saving Logic 
+    // >>> CRUCIAL FIX: Update the IN-MEMORY CACHE instead of the file system <<<
+    scrapedDataCache = results;
+    console.log(`✅ Scrape complete. ${results.length} results saved to memory.`);
+    // --- END CRUCIAL FIX ---
 
     res.status(200).json({ 
-        message: `Scraping completed for ${keywords.length} keyword(s). Results saved locally and returned.`, 
+        message: `Scraping completed for ${keywords.length} keyword(s). Results saved to memory.`, 
         data: results 
     });
   } catch (error) {
@@ -74,52 +70,43 @@ router.post('/', async (req, res) => {
 });
 
 // ------------------------------------------------------------------
-// Route to serve the generated files (CSV, JSON, Excel)
+// Route to serve the generated files (CSV, JSON)
 // ------------------------------------------------------------------
 router.get('/download/:format', (req, res) => {
     const format = req.params.format.toLowerCase();
-    let fileName = '';
-    let contentType = '';
-    let downloadAs = ''; // File name hint for the browser
+    const dataToDownload = scrapedDataCache; // Get data from memory
 
-    if (format === 'csv') {
-        fileName = 'results.csv';
-        contentType = 'text/csv';
-        downloadAs = 'lead_scrape_results.csv';
-    } else if (format === 'json') {
-        fileName = 'results.json';
-        contentType = 'application/json';
-        downloadAs = 'lead_scrape_results.json';
+    if (!dataToDownload || dataToDownload.length === 0) {
+        // Return an empty data file (with headers for CSV) but success status
+        if (format === 'csv' || format === 'excel') {
+            res.setHeader('Content-Type', 'text/csv');
+            res.attachment('lead_scrape_results.csv');
+            return res.send(generateCsv([])); // Send headers only
+        } else if (format === 'json') {
+            res.setHeader('Content-Type', 'application/json');
+            res.attachment('lead_scrape_results.json');
+            return res.send(JSON.stringify([]));
+        } else {
+            return res.status(400).json({ message: 'Invalid download format requested.' });
+        }
+    }
+
+    const downloadAs = `lead_scrape_results_${new Date().toISOString().slice(0, 10)}`;
+
+    if (format === 'csv' || format === 'excel') {
+        const csv = generateCsv(dataToDownload);
+        res.setHeader('Content-Type', 'text/csv');
+        res.attachment(`${downloadAs}.csv`);
+        return res.send(csv);
     } 
-    // Excel is a proprietary format, but we serve the compatible CSV file
-    else if (format === 'excel') { 
-        fileName = 'results.csv';
-        contentType = 'text/csv';
-        downloadAs = 'lead_scrape_results.csv'; // Excel can open this
+    
+    if (format === 'json') {
+        res.setHeader('Content-Type', 'application/json');
+        res.attachment(`${downloadAs}.json`);
+        return res.send(JSON.stringify(dataToDownload, null, 2));
     }
-    else {
-        return res.status(400).json({ message: 'Invalid download format requested.' });
-    }
-
-    // Construct the absolute path to the file
-    // process.cwd() ensures the path is correct regardless of where the script is run from
-    const filePath = path.join(process.cwd(), 'data', fileName);
-
-    // Check if the file exists before sending
-    if (fs.existsSync(filePath)) {
-        res.setHeader('Content-Type', contentType);
-        // res.download sends the file and sets the Content-Disposition header
-        res.download(filePath, downloadAs, (err) => {
-            if (err) {
-                console.error(`❌ Error downloading file ${fileName}:`, err);
-                if (!res.headersSent) {
-                    res.status(500).json({ message: 'Failed to download file.' });
-                }
-            }
-        });
-    } else {
-        res.status(404).json({ message: `File not found. Please run a scrape first.` });
-    }
+    
+    res.status(400).send('Invalid download format.');
 });
 
 export { router as workflowRouter };
