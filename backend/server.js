@@ -9,31 +9,10 @@ dotenv.config({ path: "./config/.env" });
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// --- CRUCIAL: CORS Configuration for Live Deployment ---
-
-const allowedOrigins = [
-    'http://localhost:5173', 
-    // FIX: REMOVE THE TRAILING SLASH!
-    'https://data-scrapper-project.vercel.app' 
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps) or from an allowed origin
-    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST'],
-  credentials: true
-};
-
 // Middleware
-// Apply the secure CORS configuration
-app.use(cors(corsOptions)); 
-// --------------------------------------------------------
+// TEMPORARY FIX: Apply simple wildcard CORS to allow ALL origins for debugging.
+// If the connection works now, the previous issue was a subtle Vercel URL mismatch.
+app.use(cors()); 
 
 // Enable JSON body parsing for POST requests
 app.use(express.json()); 
