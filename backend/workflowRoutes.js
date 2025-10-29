@@ -1,12 +1,13 @@
 import express from 'express';
 import { runWorkflow } from './scraper.js';
 import { Parser } from 'json2csv';
+import { scrapedDataCache, updateCache } from './cache.js'; // <-- ADDED: Import the shared cache and update function
 
 const router = express.Router();
 
 // --- IN-MEMORY CACHE ---
-// This cache holds the last successful scrape results in the server's memory.
-let scrapedDataCache = [];
+// REMOVED: The local 'let scrapedDataCache = [];' is removed.
+// We are now using the 'scrapedDataCache' object imported from './cache.js'
 // --- END CACHE ---
 
 // Function to generate CSV from in-memory data
@@ -59,10 +60,11 @@ router.post('/', async (req, res) => {
 
         const results = await runWorkflow(keywords, limit);
 
-        // Save results to in-memory cache
-        scrapedDataCache = results;
-        console.log(`✅ Scrape complete. ${results.length} results saved to memory.`);
-        console.log(`Cache check: Data count is now ${scrapedDataCache.length}`);
+        // Save results to in-memory cache using the shared update function
+        updateCache(results); // <-- MODIFIED: Use the shared updateCache function
+        console.log(`✅ Scrape complete. ${results.length} results saved to shared memory cache.`);
+        // Access results via the .results property of the shared cache object
+        console.log(`Cache check: Data count is now ${scrapedDataCache.results.length}`); // <-- MODIFIED: Access .results
 
         res.status(200).json({
             message: `Scraping completed for ${keywords.length} keyword(s). Results saved to memory.`,
@@ -82,7 +84,8 @@ router.post('/', async (req, res) => {
 // ------------------------------------------------------------------
 router.get('/download/:format', (req, res) => {
     const format = req.params.format.toLowerCase();
-    const dataToDownload = scrapedDataCache; // Get data from memory
+    // Get data from the shared memory cache's results property
+    const dataToDownload = scrapedDataCache.results; // <-- MODIFIED: Access .results
     
     console.log(`Download request for ${format}. Cache size: ${dataToDownload.length}`);
 
