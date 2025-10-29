@@ -1,7 +1,7 @@
 import express from 'express';
 import { runWorkflow } from './scraper.js';
 import { Parser } from 'json2csv';
-import { scrapedDataCache, updateCache } from '../cache.js'; // <-- IMPORTANT: Import the shared cache
+import { scrapedDataCache, updateCache } from './cache.js'; // <-- IMPORTANT: Import the shared cache
 
 const router = express.Router();
 
