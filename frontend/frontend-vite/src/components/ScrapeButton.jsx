@@ -1,21 +1,19 @@
-import React from "react";
+// components/ScrapeButton.jsx
+import React from 'react';
 
 const ScrapeButton = ({ keywords, loading, handleScrape, error }) => {
-  const isDisabled = loading || keywords.length === 0;
+  const isScrapeDisabled = loading || keywords.length === 0;
 
   return (
-    <div className="scrape-section">
-      <button
-        className={`scrape-btn ${loading ? "loading" : ""}`}
+    <div className="scrape-button-section">
+      <button 
+        className="scrape-btn"
         onClick={handleScrape}
-        disabled={isDisabled}
+        disabled={isScrapeDisabled}
       >
-        {loading
-          ? "⏳ Scraping in progress..."
-          : `🚀 Start Scraping (${keywords.length} keywords)`}
+        {loading ? 'Scraping...' : '🚀 Scrape for Display'}
       </button>
-
-      {error && <p className="error-banner">⚠️ {error}</p>}
+      {error && <p className="error-message">Error: {error}</p>}
     </div>
   );
 };
