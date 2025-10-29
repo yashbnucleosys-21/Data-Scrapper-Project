@@ -5,12 +5,13 @@ import { Parser } from 'json2csv';
 const router = express.Router();
 
 // --- IN-MEMORY CACHE ---
+// This cache holds the last successful scrape results in the server's memory.
 let scrapedDataCache = [];
 // --- END CACHE ---
 
 // Function to generate CSV from in-memory data
 function generateCsv(data) {
-    // Define fields explicitly for the CSV Parser
+    // Define fields explicitly for the CSV Parser to ensure headers are consistent
     const fields = [
         'keyword',
         'business_name',
@@ -22,7 +23,7 @@ function generateCsv(data) {
         'emails',
     ];
     
-    // CRITICAL FIX: Only use 'new' once
+    // Correct instantiation of the Parser
     const parser = new Parser({ fields }); 
     
     if (!data || data.length === 0) {
@@ -34,13 +35,16 @@ function generateCsv(data) {
     try {
         return parser.parse(data);
     } catch (e) {
+        // Log the error but return headers to prevent a crash
         console.error("❌ json2csv Parsing Failed:", e.message);
-        return fields.join(','); // Return headers on failure
+        return fields.join(','); 
     }
 }
 
 
+// ------------------------------------------------------------------
 // Route: POST /api/scrape (Scraping Trigger)
+// ------------------------------------------------------------------
 router.post('/', async (req, res) => {
     const { keywords, limit } = req.body;
 
@@ -55,6 +59,7 @@ router.post('/', async (req, res) => {
 
         const results = await runWorkflow(keywords, limit);
 
+        // Save results to in-memory cache
         scrapedDataCache = results;
         console.log(`✅ Scrape complete. ${results.length} results saved to memory.`);
         console.log(`Cache check: Data count is now ${scrapedDataCache.length}`);
@@ -73,45 +78,56 @@ router.post('/', async (req, res) => {
 });
 
 // ------------------------------------------------------------------
-// Route to serve the generated files (CSV, JSON)
+// Route: GET /download/:format (Download Endpoint)
 // ------------------------------------------------------------------
 router.get('/download/:format', (req, res) => {
     const format = req.params.format.toLowerCase();
     const dataToDownload = scrapedDataCache; // Get data from memory
     
-    console.log(`Download request for ${format}. Cache size: ${dataToDownload.length}`); // Logging check
+    console.log(`Download request for ${format}. Cache size: ${dataToDownload.length}`);
 
-    // Check if data is empty. If so, return a minimal file (headers or empty array)
-    if (!dataToDownload || dataToDownload.length === 0) {
-        if (format === 'csv' || format === 'excel') {
-            res.setHeader('Content-Type', 'text/csv');
-            res.attachment('lead_scrape_results.csv');
-            return res.send(generateCsv([])); // Send headers only
-        } else if (format === 'json') {
-            res.setHeader('Content-Type', 'application/json');
-            res.attachment('lead_scrape_results.json');
-            return res.send(JSON.stringify([]));
-        } else {
-            return res.status(400).json({ message: 'Invalid download format requested.' });
-        }
-    }
+    const downloadAsBase = `lead_scrape_results_${new Date().toISOString().slice(0, 10)}`;
+    let fileContent = '';
+    let contentType = '';
+    let downloadAs = '';
 
-    const downloadAs = `lead_scrape_results_${new Date().toISOString().slice(0, 10)}`;
-
+    // 1. Generate Content and Set Headers for CSV/Excel
     if (format === 'csv' || format === 'excel') {
-        const csv = generateCsv(dataToDownload);
-        res.setHeader('Content-Type', 'text/csv');
-        res.attachment(`${downloadAs}.csv`);
-        return res.send(csv);
+        fileContent = generateCsv(dataToDownload);
+        contentType = 'text/csv';
+        downloadAs = `${downloadAsBase}.csv`;
+    } 
+    // 2. Generate Content and Set Headers for JSON
+    else if (format === 'json') {
+        // Always stringify the data, even if it's an empty array
+        fileContent = JSON.stringify(dataToDownload, null, 2); 
+        contentType = 'application/json';
+        downloadAs = `${downloadAsBase}.json`;
+    } 
+    // 3. Handle Invalid Format
+    else {
+        return res.status(400).send('Invalid download format requested.');
+    }
+    
+    // --- FINAL SEND LOGIC ---
+
+    // Safety check for content (although generateCsv/JSON.stringify should handle empty arrays)
+    if (!fileContent) {
+        console.warn(`Content for ${format} is unexpectedly empty.`);
+        fileContent = (contentType === 'text/csv') ? generateCsv([]) : '[]'; // Ensure minimal content
     }
 
-    if (format === 'json') {
-        res.setHeader('Content-Type', 'application/json');
-        res.attachment(`${downloadAs}.json`);
-        return res.send(JSON.stringify(dataToDownload, null, 2));
-    }
+    // Set the necessary headers for a robust download:
+    res.setHeader('Content-Type', contentType);
+    
+    // CRITICAL: Force the browser to download the file
+    res.setHeader('Content-Disposition', `attachment; filename="${downloadAs}"`);
 
-    res.status(400).send('Invalid download format.');
+    // Set the content length for reliability
+    res.setHeader('Content-Length', Buffer.byteLength(fileContent, 'utf8'));
+
+    // Send the content
+    return res.send(fileContent);
 });
 
 export { router as workflowRouter };
