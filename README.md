@@ -7,21 +7,14 @@
 [![Deployed on Vercel](https://img.shields.io/badge/Frontend-Vercel-black?logo=vercel)](https://vercel.com/)
 [![Deployed on Render](https://img.shields.io/badge/Backend-Render-purple?logo=render)](https://render.com/)
 
-> A full-stack, cloud-ready **Web Data Scraper** that extracts business leads and contact details using keyword + location search. Built with **React (Vite)** frontend and **Node.js (Express)** backend; scraping powered by **SerpAPI + Puppeteer**. Results are downloadable as CSV or JSON.
+> A full-stack, cloud-ready **Web Data Scraper** developed by [**Yash Bhilare**](https://www.linkedin.com/in/yashbhilare21/) that extracts business leads and contact details using keyword + location search.  
+> Built with **React (Vite)** frontend and **Node.js (Express)** backend; scraping powered by **SerpAPI + Puppeteer**.  
+> Results are downloadable as **CSV** or **JSON**.
 
 ---
 
 ## 🌐 Live Demo
 **Try it:** https://ncs-data-scrapper.vercel.app/
-
----
-
-## 🖼️ Screenshots
-*(Add your screenshots inside `/screenshots` and update filenames below)*
-
-| Dashboard View | Scraping Results |
-|----------------|------------------|
-| ![Dashboard](./screenshots/dashboard.png) | ![Results](./screenshots/results.png) |
 
 ---
 
@@ -66,22 +59,29 @@
     npm install
 
 Create a `.env` file inside the `backend/` folder and add:
-    SERP_API_KEY=YOUR_SERPAPI_KEY_HERE
-
+```
+SERP_API_KEY=YOUR_SERPAPI_KEY_HERE
+```
 Start the backend:
+```
     npm run dev
+```
 (Backend typically runs at http://localhost:5000)
 
 ### 4) Frontend setup (frontend-vite/)
 Open a new terminal:
+```
     cd ../frontend-vite
     npm install
-
+```
 Create `.env.local` to point to your local backend:
+```
     VITE_API_URL=http://localhost:5000/api/scrape
-
+```
 Start the frontend:
+```
     npm run dev
+```
 (Frontend typically runs at http://localhost:5173)
 
 ---
@@ -92,11 +92,13 @@ Start the frontend:
 **Platform:** Render  
 **Type:** Web Service  
 **Build Command:**  
+```
     npm install
-
+```
 **Start Command:**  
+```
     npm start
-
+```
 **Key Configurations:**
 - Enable CORS to allow requests from your Vercel frontend domain.  
 - Store scraped results in-memory (e.g., `global.scrapedDataCache`) because Render's file system is ephemeral (resets between deploys and instances).
@@ -106,7 +108,7 @@ Start the frontend:
 **Framework:** Vite + React
 
 Set environment variable in Vercel:
-    VITE_API_URL=https://<your-render-backend-url>/api/scrape
+    VITE_API_URL=https://data-scrapper-project.onrender.com/api/scrape
 
 The production build will use `import.meta.env.VITE_API_URL` to contact the backend.
 
@@ -176,7 +178,7 @@ To contribute:
     git push origin feature-name
 
 Report bugs or request features via Issues:
-https://github.com/yashbnucleosys-21/Data-Scrapper-Project/issues
+yashbhilare209@gmail.com
 
 ---
 
@@ -189,7 +191,7 @@ This project is licensed under the **MIT License** — feel free to use, modify,
 ## 👨‍💻 Author
 
 **Developed by:** Yash Bhilare – Nucleosys Tech  
-📧 **Contact:** yashbnucleosys21@gmail.com  
+📧 **Contact:** yashbhilare209@gmail.com  
 🌐 **Live Demo:** https://ncs-data-scrapper.vercel.app/
 
 ---
