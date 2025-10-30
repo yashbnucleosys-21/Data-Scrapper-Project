@@ -111,6 +111,8 @@ h1 {
 
 .input-section input {
   flex: 1;
+  color: #000000;
+  font-weight: 500;
   padding: 14px 16px;
   border: 1px solid #dfe6e9;
   border-radius: 8px;
